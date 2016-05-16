@@ -1,0 +1,70 @@
+#!/bin/busybox sh
+echo "Loading, please wait..."
+
+mkdir -p /newroot /proc /sbin /sys /tmp /usr/bin /usr/sbin /var/lock
+/bin/busybox --install
+mount -t sysfs -o nodev,noexec,nosuid none /sys
+mount -t proc -o nodev,noexec,nosuid none /proc
+
+echo  "Bringing up bridge ..."
+ifconfig eth0 0.0.0.0 up
+brctl addbr br0
+brctl addif br0 eth0
+ifconfig br0 0.0.0.0 up
+udhcpc -i br0 -q
+
+echo "Sleep 5 ..."
+sleep 5
+
+# parsing stolen from initramfs-tools
+
+for x in $(cat /proc/cmdline); do
+        case $x in
+        rootflags=*)
+                ROOTFLAGS="-o ${x#rootflags=}"
+                ;;
+        rootfstype=*)
+                ROOTFSTYPE="${x#rootfstype=}"
+                ;;
+        rootdelay=*)
+                ROOTDELAY="${x#rootdelay=}"
+                case ${ROOTDELAY} in
+                *[![:digit:].]*)
+                        ROOTDELAY=
+                        ;;
+                esac
+                ;;
+        nfsroot=*)
+                NFSROOT="${x#nfsroot=}"
+                ;;
+        esac
+done
+
+# get nfs root from dhcp
+if [ "x${NFSROOT}" = "xauto" ]; then
+        # check if server ip is part of dhcp root-path
+        if [ "${ROOTPATH#*:}" = "${ROOTPATH}" ]; then
+                NFSROOT=${ROOTSERVER}:${ROOTPATH}
+        else
+                NFSROOT=${ROOTPATH}
+        fi
+
+# nfsroot=[<server-ip>:]<root-dir>[,<nfs-options>]
+elif [ -n "${NFSROOT}" ]; then
+        # nfs options are an optional arg
+        if [ "${NFSROOT#*,}" != "${NFSROOT}" ]; then
+                NFSOPTS="-o ${NFSROOT#*,}"
+        fi
+        NFSROOT=${NFSROOT%%,*}
+        if [ "${NFSROOT#*:}" = "$NFSROOT" ]; then
+                NFSROOT=${ROOTSERVER}:${NFSROOT}
+        fi
+fi
+
+echo "Mount nfs ..."
+mount -t nfs -o nolock ${NFSOPTS} ${NFSROOT} /newroot||/bin/busybox sh -i </dev/console >/dev/console 2>&1
+
+mount --move /proc /newroot/proc
+mount --move /sysfs /newroot/sys
+
+exec switch_root /newroot /sbin/init
