@@ -61,10 +61,11 @@ elif [ -n "${NFSROOT}" ]; then
         fi
 fi
 
-echo "Mount nfs ..."
+echo "Mount NFS ..."
 mount -t nfs -o nolock ${NFSOPTS} ${NFSROOT} /newroot||/bin/busybox sh -i </dev/console >/dev/console 2>&1
 
 mount --move /proc /newroot/proc
-mount --move /sysfs /newroot/sys
+mount --move /sys /newroot/sys
 
+echo "Switch to NFS rootfs"
 exec switch_root /newroot /sbin/init
