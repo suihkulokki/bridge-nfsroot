@@ -6,6 +6,9 @@ mkdir -p /newroot /proc /sbin /sys /tmp /usr/bin /usr/sbin /var/lock
 mount -t sysfs -o nodev,noexec,nosuid none /sys
 mount -t proc -o nodev,noexec,nosuid none /proc
 
+depmod -a||true
+modprobe bridge||true
+
 echo  "Bringing up bridge ..."
 ifconfig eth0 0.0.0.0 up
 brctl addbr br0
