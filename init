@@ -7,6 +7,13 @@ mount -t sysfs -o nodev,noexec,nosuid none /sys
 mount -t proc -o nodev,noexec,nosuid none /proc
 
 depmod -a||true
+
+# Modprobe all drivers/net/ethernet modules
+for module in $(find /lib/modules/$(uname -r)/kernel/drivers/net/ethernet -type f -name '*.ko') ; do
+        module_name=$(basename ${module})
+        modprobe ${module_name%.ko}||true
+done
+
 modprobe bridge||true
 
 echo  "Bringing up bridge ..."
