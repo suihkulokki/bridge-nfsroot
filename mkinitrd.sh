@@ -6,7 +6,7 @@ ARCH=$1
 URL=http://http.debian.net/debian/pool/main/b/busybox/busybox-static_1.22.0-9+deb8u1_${ARCH}.deb
 package=`basename $URL`
 wget -nv -nc $URL
-rm -rf initramfs.*.cpio initramfs.*.cpio.gz tmp
+rm -rf initramfs.${ARCH}.cpio initramfs.${ARCH}.cpio.gz tmp
 dpkg-deb -x $package tmp/
 mkdir -p tmp/etc/udhcpc
 cp default.script tmp/etc/udhcpc
